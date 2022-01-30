@@ -40,6 +40,13 @@ impl State {
         self.buffer = Some(vec![0; self.end]);
     }
 
+    pub fn dealloc(&mut self) {
+        self.start = 0;
+        self.end = 0;
+        // drop current buffer
+        let _ = self.buffer.take();
+    }
+
     /// get reference to next u8 value if one exists
     pub fn next_u8(&self) -> DecodeResultT<u8> {
         if self.start >= self.end {
@@ -102,7 +109,11 @@ pub trait PrimitiveEnDecoder {
     /// check if the protocol header matches
     /// override, if different behavioris required
     fn protocol_header_matches(value: u8) -> bool {
-        value == Self::PROTOCOL_PREFIX
+        if Self::PROTOCOL_HEADER_SIZE == 0 {
+            true
+        } else {
+            value == Self::PROTOCOL_PREFIX
+        }
     }
 
     /// add protocol header to the buffer
@@ -449,6 +460,46 @@ impl PrimitiveEnDecoder for Int64 {
 
 impl EnDecoder for Int64 {}
 
+/// encoder/decoder for f64
+pub struct Float64();
+
+impl PrimitiveEnDecoder for Float64 {
+    type PrimitiveType = f64;
+    const PROTOCOL_PREFIX: u8 = 0;
+    const PROTOCOL_HEADER_SIZE: usize = 0;
+
+    fn add_protocol_header(_state: &mut State) -> EncodeResult {
+        // do not add header
+        Ok(())
+    }
+
+    fn primitive_encode(state: &mut State, n: Self::PrimitiveType) -> EncodeResult {
+        let buffer: &mut [u8] = &mut state
+            .buffer
+            .as_deref_mut()
+            .ok_or_else(|| -> EncodeError { EncodeError::NoBuffer })?;
+        let view = &mut buffer[state.start..state.start + Self::SIZE];
+        view.copy_from_slice(&n.to_le_bytes());
+        state.start += Self::SIZE;
+        Ok(())
+    }
+
+    fn primitive_decode(state: &mut State) -> DecodeResultT<Self::PrimitiveType> {
+        if (state.end - state.start) < Self::SIZE {
+            return Err(DecodeError::OutOfBounds);
+        }
+        let buffer = &state.buffer.as_ref().ok_or_else(|| DecodeError::NoBuffer)?;
+        let view = &buffer[state.start..state.start + Self::SIZE];
+        let value: Self::PrimitiveType = Self::PrimitiveType::from_le_bytes(
+            view.try_into().map_err(|_| DecodeError::OutOfBounds)?,
+        );
+        state.start += Self::SIZE;
+        Ok(value)
+    }
+}
+
+impl EnDecoder for Float64 {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -648,5 +699,176 @@ mod tests {
         assert_eq!(state.start, state.end);
 
         assert_eq!(Int8::decode(&mut state), Err(DecodeError::OutOfBounds));
+    }
+
+    #[test]
+    fn test_float64() {
+        let mut state = State::new();
+        const NUM: f64 = 162.2377294;
+
+        Float64::pre_encode(&mut state, NUM);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 8,
+                buffer: None,
+            }
+        );
+
+        state.alloc();
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 8,
+                buffer: Some(vec![0, 0, 0, 0, 0, 0, 0, 0]),
+            }
+        );
+
+        assert_eq!(Float64::encode(&mut state, NUM), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 8,
+                end: 8,
+                buffer: Some(vec![0x87, 0xC9, 0xAF, 0x7A, 0x9B, 0x47, 0x64, 0x40]),
+            }
+        );
+
+        state.start = 0;
+        assert_eq!(Float64::decode(&mut state), Ok(NUM));
+        assert_eq!(state.start, state.end);
+
+        assert_eq!(Float64::decode(&mut state), Err(DecodeError::OutOfBounds));
+
+        // alignment
+        state.dealloc();
+
+        Uint8::pre_encode(&mut state, 0);
+        Float64::pre_encode(&mut state, NUM);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 9,
+                buffer: None,
+            }
+        );
+
+        state.alloc();
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 9,
+                buffer: Some(vec![0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            }
+        );
+
+        assert_eq!(Uint8::encode(&mut state, 0), Ok(()));
+        assert_eq!(Float64::encode(&mut state, NUM), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 9,
+                end: 9,
+                buffer: Some(vec![0, 0x87, 0xC9, 0xAF, 0x7A, 0x9B, 0x47, 0x64, 0x40]),
+            }
+        );
+
+        state.start = 0;
+        assert_eq!(Uint8::decode(&mut state), Ok(0));
+        assert_eq!(Float64::decode(&mut state), Ok(NUM));
+        assert_eq!(state.start, state.end);
+
+        assert_eq!(Float64::decode(&mut state), Err(DecodeError::OutOfBounds));
+
+        // subarray (replace buffer?)
+        // TODO: check what this test is about and why it is needed
+        //       would require state.buffer to point to a buffer instead of buffer being a member
+        // let buffer = vec![0; 10];
+        // state.buffer = &buffer[1..];
+        // assert_eq!(
+        //     state,
+        //     State {
+        //         start: 0,
+        //         end: 9,
+        //         buffer: Some(vec![0, 0, 0, 0, 0, 0, 0, 0, 0]),
+        //     }
+        // );
+
+        // assert_eq!(Uint8::encode(&mut state, 0), Ok(()));
+        // assert_eq!(Float64::encode(&mut state, NUM), Ok(()));
+        // assert_eq!(
+        //     state,
+        //     State {
+        //         start: 9,
+        //         end: 9,
+        //         buffer: Some(vec![0, 0x87, 0xC9, 0xAF, 0x7A, 0x9B, 0x47, 0x64, 0x40]),
+        //     }
+        // );
+
+        // state.start = 0;
+        // assert_eq!(Uint8::decode(&mut state), Ok(0));
+        // assert_eq!(Float64::decode(&mut state), Ok(NUM));
+        // assert_eq!(state.start, state.end);
+
+        // 0
+        state.dealloc();
+        Float64::pre_encode(&mut state, NUM);
+
+        state.alloc();
+        assert_eq!(Float64::encode(&mut state, 0.), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 8,
+                end: 8,
+                buffer: Some(vec![0, 0, 0, 0, 0, 0, 0, 0]),
+            }
+        );
+
+        state.start = 0;
+        assert_eq!(Float64::decode(&mut state), Ok(0.));
+        assert_eq!(state.start, state.end);
+
+        // infinity
+        state.dealloc();
+        Float64::pre_encode(&mut state, f64::INFINITY);
+
+        state.alloc();
+        assert_eq!(Float64::encode(&mut state, f64::INFINITY), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 8,
+                end: 8,
+                buffer: Some(vec![0, 0, 0, 0, 0, 0, 0xF0, 0x7F]),
+            }
+        );
+
+        state.start = 0;
+        assert_eq!(Float64::decode(&mut state), Ok(f64::INFINITY));
+        assert_eq!(state.start, state.end);
+
+        // edge cases
+        state.dealloc();
+        Float64::pre_encode(&mut state, 0.1 + 0.2);
+
+        state.alloc();
+        assert_eq!(Float64::encode(&mut state, 0.1 + 0.2), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 8,
+                end: 8,
+                buffer: Some(vec![0x34, 0x33, 0x33, 0x33, 0x33, 0x33, 0xD3, 0x3F]),
+            }
+        );
+
+        state.start = 0;
+        assert_eq!(Float64::decode(&mut state), Ok(0.1 + 0.2));
+        assert_eq!(state.start, state.end);
     }
 }
