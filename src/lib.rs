@@ -460,6 +460,46 @@ impl PrimitiveEnDecoder for Int64 {
 
 impl EnDecoder for Int64 {}
 
+/// encoder/decoder for f32
+pub struct Float32();
+
+impl PrimitiveEnDecoder for Float32 {
+    type PrimitiveType = f32;
+    const PROTOCOL_PREFIX: u8 = 0;
+    const PROTOCOL_HEADER_SIZE: usize = 0;
+
+    fn add_protocol_header(_state: &mut State) -> EncodeResult {
+        // do not add header
+        Ok(())
+    }
+
+    fn primitive_encode(state: &mut State, n: Self::PrimitiveType) -> EncodeResult {
+        let buffer: &mut [u8] = &mut state
+            .buffer
+            .as_deref_mut()
+            .ok_or_else(|| -> EncodeError { EncodeError::NoBuffer })?;
+        let view = &mut buffer[state.start..state.start + Self::SIZE];
+        view.copy_from_slice(&n.to_le_bytes());
+        state.start += Self::SIZE;
+        Ok(())
+    }
+
+    fn primitive_decode(state: &mut State) -> DecodeResultT<Self::PrimitiveType> {
+        if (state.end - state.start) < Self::SIZE {
+            return Err(DecodeError::OutOfBounds);
+        }
+        let buffer = &state.buffer.as_ref().ok_or_else(|| DecodeError::NoBuffer)?;
+        let view = &buffer[state.start..state.start + Self::SIZE];
+        let value: Self::PrimitiveType = Self::PrimitiveType::from_le_bytes(
+            view.try_into().map_err(|_| DecodeError::OutOfBounds)?,
+        );
+        state.start += Self::SIZE;
+        Ok(value)
+    }
+}
+
+impl EnDecoder for Float32 {}
+
 /// encoder/decoder for f64
 pub struct Float64();
 
@@ -699,6 +739,49 @@ mod tests {
         assert_eq!(state.start, state.end);
 
         assert_eq!(Int8::decode(&mut state), Err(DecodeError::OutOfBounds));
+    }
+
+    #[test]
+    fn test_float32() {
+        let mut state = State::new();
+        const NUM: f32 = 162.2377294;
+
+        Float32::pre_encode(&mut state, NUM);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 4,
+                buffer: None,
+            }
+        );
+
+        state.alloc();
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 4,
+                buffer: Some(vec![0, 0, 0, 0]),
+            }
+        );
+
+        assert_eq!(Float32::encode(&mut state, NUM), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 4,
+                end: 4,
+                // TODO double check expected value
+                buffer: Some(vec![0xDC, 0x3C, 0x22, 0x43]),
+            }
+        );
+
+        state.start = 0;
+        assert_eq!(Float32::decode(&mut state), Ok(NUM));
+        assert_eq!(state.start, state.end);
+
+        assert_eq!(Float32::decode(&mut state), Err(DecodeError::OutOfBounds));
     }
 
     #[test]
