@@ -1,8 +1,15 @@
 # compact_encoding Rust design ideas
 
+Use features instead of dedicated crates for base encoding, -net, and -struct libraries.
+
+Make the original tests pass + add more tests.
+
 ## Follow original API?
 
-unit structs with associated method?
+One Trait which en-/decodes the primitive types without headers.
+One Trait which en-/decodes the types with headers.
+
+dedicated unit-structs which implement the traits for the individual types
 
 ### Pros
 

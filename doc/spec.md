@@ -40,3 +40,6 @@ least significant bit (LSB) for little endian = byte0
 |                   |                                                                |             |        |
 
 
+# compact-encoding-struct
+
+# compact-encoding-net

@@ -30,6 +30,8 @@ pub enum DecodeError {
     NoBuffer,
     /// trying to decode a type which is not supported, e.g. u128
     TypeNotSupported,
+    /// type does not match the expected type to decode
+    TypeMismatch,
 }
 
 impl std::fmt::Display for DecodeError {
@@ -38,6 +40,9 @@ impl std::fmt::Display for DecodeError {
             Self::OutOfBounds => write!(f, "buffer is too small to decode the expected type"),
             Self::NoBuffer => write!(f, "no buffer allocated in State struct"),
             Self::TypeNotSupported => write!(f, "the type is not supported by compact-encoding"),
+            Self::TypeMismatch => {
+                write!(f, "the encoding does not match the type to be decoded into")
+            }
         }
     }
 }
