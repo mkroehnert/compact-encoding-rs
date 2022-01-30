@@ -24,8 +24,8 @@ least significant bit (LSB) for little endian = byte0
 | int32             |                                                                | [X]         | [ ]    |
 | int64             |                                                                | [X]         | [ ]    |
 |                   |                                                                |             |        |
-| float32           |                                                                | [ ]         | [ ]    |
-| float64           |                                                                | [ ]         | [ ]    |
+| float32           |                                                                | [X]         | [ ]    |
+| float64           |                                                                | [X]         | [ ]    |
 |                   |                                                                |             |        |
 | buffer / uint8[]? |                                                                | [ ]         | [ ]    |
 | uint32[]          |                                                                | [ ]         | [ ]    |
