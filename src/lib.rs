@@ -53,30 +53,51 @@ impl State {
 }
 
 /// Trait which defines the required encoding and decoding functions
-pub trait EnDecoder {
-    /// the type to be en-/decoded
-    type Base;
-
-    //type DecodeResult = DecodeResultT<Self::Base>;
-
-    /// size of the type to en-/decode
-    const SIZE: usize = std::mem::size_of::<Self::Base>();
+pub trait EnDecoder: PrimitiveEnDecoder {
+    //type DecodeResult = DecodeResultT<Self::PrimitiveType>;
 
     /// allocate the required size in State for current type
-    fn pre_encode(state: &mut State, n: Self::Base);
-    /// encode n with state
+    fn pre_encode(state: &mut State, n: Self::PrimitiveType) {
+        // size of protocol header
+        state.end += Self::PROTOCOL_HEADER_SIZE;
+        // data size
+        Self::primitive_pre_encode(state, n);
+    }
+
+    /// encode n into state.buffer
     /// requires state.buffer to be allocated first
-    fn encode(state: &mut State, n: Self::Base) -> EncodeResult;
+    fn encode(state: &mut State, n: Self::PrimitiveType) -> EncodeResult {
+        Self::add_protocol_header(state)?;
+        Self::primitive_encode(state, n)
+    }
+
     /// decode value at current buffer pointer into Self::Base
-    fn decode(state: &mut State) -> DecodeResultT<Self::Base>;
+    fn decode(state: &mut State) -> DecodeResultT<Self::PrimitiveType> {
+        if (state.end - state.start) < Self::SIZE {
+            return Err(DecodeError::OutOfBounds);
+        }
+        state.next_u8().map(|u| {
+            if Self::protocol_header_matches(u) {
+                state.start += Self::PROTOCOL_HEADER_SIZE;
+                Self::primitive_decode(state)
+            } else {
+                Err(DecodeError::TypeMismatch)
+            }
+        })?
+    }
 }
 
 /// encoding and decoding of primitive values
 /// provides methods which are used for en-/decoding with protocol headers
 pub trait PrimitiveEnDecoder {
+    /// the underlying primitive type which is en-/decoded
     type PrimitiveType;
+    /// the protocol prefix to attach to the stream
     const PROTOCOL_PREFIX: u8;
+    /// the size of the protocol header to attached (required for pre_encode() for correct buffer size)
     const PROTOCOL_HEADER_SIZE: usize;
+    /// size of the type to en-/decode
+    const SIZE: usize = std::mem::size_of::<Self::PrimitiveType>();
 
     /// check if the protocol header matches
     /// override, if different behavioris required
@@ -97,8 +118,8 @@ pub trait PrimitiveEnDecoder {
     }
 
     /// add size of primitive to `state`
-    fn primitive_pre_encode(state: &mut State) {
-        state.end += std::mem::size_of::<Self::PrimitiveType>();
+    fn primitive_pre_encode(state: &mut State, _n: Self::PrimitiveType) {
+        state.end += Self::SIZE;
     }
 
     /// implement the primitive encoding in this method
@@ -153,33 +174,7 @@ impl PrimitiveEnDecoder for Uint8 {
     }
 }
 
-impl EnDecoder for Uint8 {
-    type Base = u8;
-
-    fn pre_encode(state: &mut State, _: Self::Base) {
-        // prefix
-        state.end += Self::PROTOCOL_HEADER_SIZE;
-        Self::primitive_pre_encode(state);
-    }
-
-    fn encode(state: &mut State, n: Self::Base) -> EncodeResult {
-        Self::add_protocol_header(state)?;
-        Self::primitive_encode(state, n)
-    }
-
-    fn decode(state: &mut State) -> DecodeResultT<Self::Base> {
-        if (state.end - state.start) < Self::SIZE {
-            return Err(DecodeError::OutOfBounds);
-        }
-        state.next_u8().map(|u| {
-            if Self::protocol_header_matches(u) {
-                Self::primitive_decode(state)
-            } else {
-                Err(DecodeError::TypeMismatch)
-            }
-        })?
-    }
-}
+impl EnDecoder for Uint8 {}
 
 /// encoder/decoder for u16
 pub struct Uint16();
@@ -214,35 +209,7 @@ impl PrimitiveEnDecoder for Uint16 {
     }
 }
 
-impl EnDecoder for Uint16 {
-    type Base = u16;
-
-    fn pre_encode(state: &mut State, _: Self::Base) {
-        // prefix
-        state.end += Self::PROTOCOL_HEADER_SIZE;
-        Self::primitive_pre_encode(state);
-    }
-
-    fn encode(state: &mut State, n: Self::Base) -> EncodeResult {
-        Self::add_protocol_header(state)?;
-        Self::primitive_encode(state, n)
-    }
-
-    fn decode(state: &mut State) -> DecodeResultT<Self::Base> {
-        if (state.end - state.start) < Self::SIZE {
-            return Err(DecodeError::OutOfBounds);
-        }
-        state.next_u8().map(|u| {
-            if Self::protocol_header_matches(u) {
-                // ignore header
-                state.start += 1;
-                Self::primitive_decode(state)
-            } else {
-                Err(DecodeError::TypeMismatch)
-            }
-        })?
-    }
-}
+impl EnDecoder for Uint16 {}
 
 /// encoder/decoder for 32
 pub struct Uint32();
@@ -285,35 +252,7 @@ impl PrimitiveEnDecoder for Uint32 {
     }
 }
 
-impl EnDecoder for Uint32 {
-    type Base = u32;
-
-    fn pre_encode(state: &mut State, _: Self::Base) {
-        // prefix
-        state.end += Self::PROTOCOL_HEADER_SIZE;
-        Self::primitive_pre_encode(state);
-    }
-
-    fn encode(state: &mut State, n: Self::Base) -> EncodeResult {
-        Self::add_protocol_header(state)?;
-        Self::primitive_encode(state, n)
-    }
-
-    fn decode(state: &mut State) -> DecodeResultT<Self::Base> {
-        if (state.end - state.start) < Self::SIZE {
-            return Err(DecodeError::OutOfBounds);
-        }
-        state.next_u8().map(|u| {
-            if Self::protocol_header_matches(u) {
-                // ignore header
-                state.start += 1;
-                Self::primitive_decode(state)
-            } else {
-                Err(DecodeError::TypeMismatch)
-            }
-        })?
-    }
-}
+impl EnDecoder for Uint32 {}
 
 /// encoder/decoder for u64
 pub struct Uint64();
@@ -343,35 +282,7 @@ impl PrimitiveEnDecoder for Uint64 {
     }
 }
 
-impl EnDecoder for Uint64 {
-    type Base = u64;
-
-    fn pre_encode(state: &mut State, _: Self::Base) {
-        // prefix
-        state.end += Self::PROTOCOL_HEADER_SIZE;
-        Self::primitive_pre_encode(state);
-    }
-
-    fn encode(state: &mut State, n: Self::Base) -> EncodeResult {
-        Self::add_protocol_header(state)?;
-        Self::primitive_encode(state, n)
-    }
-
-    fn decode(state: &mut State) -> DecodeResultT<Self::Base> {
-        if (state.end - state.start) < Self::SIZE {
-            return Err(DecodeError::OutOfBounds);
-        }
-        state.next_u8().map(|u| {
-            if Self::protocol_header_matches(u) {
-                // ignore header
-                state.start += 1;
-                Self::primitive_decode(state)
-            } else {
-                Err(DecodeError::TypeMismatch)
-            }
-        })?
-    }
-}
+impl EnDecoder for Uint64 {}
 
 #[cfg(test)]
 mod tests {
