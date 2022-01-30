@@ -10,19 +10,19 @@ least significant bit (LSB) for little endian = byte0
 | none              |                                                                | [ ]         | [ ]    |
 | bool              |                                                                | [ ]         | [ ]    |
 |                   |                                                                |             |        |
-| uint              | see dedicated uintX                                            | [ ]         | [ ]    |
+| uint              | see dedicated uintX                                            | [-]         | [ ]    |
 | uint8             | [0xFC, byte0] (byte <= 0xFC)                                   | [X]         | [ ]    |
 | uint16            | [0xFD, byte0, byte1]                                           | [X]         | [ ]    |
-| uint24            | available in JS, but not called automatically                  | [ ]         | [ ]    |
+| uint24            | available in JS, but not called automatically                  | [-]         | [ ]    |
 | uint32            | [0xFE, byte0, byte1, byte2, byte3]                             | [X]         | [ ]    |
 | uint64            | [0xFF, byte0, byte1, byte2, byte3, byte4, byte5, byte6, byte7] | [x]         | [ ]    |
 |                   |                                                                |             |        |
-| int               | see dedicated intX                                             | [ ]         | [ ]    |
-| int8              |                                                                | [ ]         | [ ]    |
-| int16             |                                                                | [ ]         | [ ]    |
-| int24             | available in JS, but not called automatically                  | [ ]         | [ ]    |
-| int32             |                                                                | [ ]         | [ ]    |
-| int64             |                                                                | [ ]         | [ ]    |
+| int               | see dedicated intX                                             | [-]         | [ ]    |
+| int8              |                                                                | [X]         | [ ]    |
+| int16             |                                                                | [X]         | [ ]    |
+| int24             | available in JS, but not called automatically                  | [-]         | [ ]    |
+| int32             |                                                                | [X]         | [ ]    |
+| int64             |                                                                | [X]         | [ ]    |
 |                   |                                                                |             |        |
 | float32           |                                                                | [ ]         | [ ]    |
 | float64           |                                                                | [ ]         | [ ]    |

@@ -284,6 +284,171 @@ impl PrimitiveEnDecoder for Uint64 {
 
 impl EnDecoder for Uint64 {}
 
+pub fn zig_zag_encode(value: i64) -> u64 {
+    let result = match value {
+        n if n < 0 => (2 * -n) - 1,
+        n if n == 0 => 0,
+        n => 2 * n,
+    };
+    result as u64
+}
+
+pub fn zig_zag_decode(value: u64) -> i64 {
+    match value {
+        n if n == 0 => n as i64,
+        n if (n & 1) == 0 => (n as i64) / 2,
+        n => -((n as i64) + 1) / 2,
+    }
+}
+
+/// encoder/decoder for i8
+pub struct Int8();
+
+impl PrimitiveEnDecoder for Int8 {
+    type PrimitiveType = i8;
+    const PROTOCOL_PREFIX: u8 = Uint8::PROTOCOL_PREFIX;
+    const PROTOCOL_HEADER_SIZE: usize = Uint8::PROTOCOL_HEADER_SIZE;
+
+    fn protocol_header_matches(value: u8) -> bool {
+        Uint8::protocol_header_matches(value)
+    }
+
+    fn add_protocol_header(state: &mut State) -> EncodeResult {
+        Uint8::add_protocol_header(state)
+    }
+
+    fn primitive_pre_encode(state: &mut State, n: Self::PrimitiveType) {
+        Uint8::primitive_pre_encode(
+            state,
+            zig_zag_encode(n as i64) as <Uint8 as PrimitiveEnDecoder>::PrimitiveType,
+        );
+    }
+
+    fn primitive_encode(state: &mut State, n: Self::PrimitiveType) -> EncodeResult {
+        Uint8::primitive_encode(
+            state,
+            zig_zag_encode(n as i64) as <Uint8 as PrimitiveEnDecoder>::PrimitiveType,
+        )
+    }
+
+    fn primitive_decode(state: &mut State) -> DecodeResultT<Self::PrimitiveType> {
+        Ok(zig_zag_decode(Uint8::primitive_decode(state)? as u64) as Self::PrimitiveType)
+    }
+}
+
+impl EnDecoder for Int8 {}
+
+/// encoder/decoder for i16
+pub struct Int16();
+
+impl PrimitiveEnDecoder for Int16 {
+    type PrimitiveType = i16;
+    const PROTOCOL_PREFIX: u8 = Uint16::PROTOCOL_PREFIX;
+    const PROTOCOL_HEADER_SIZE: usize = Uint16::PROTOCOL_HEADER_SIZE;
+
+    fn protocol_header_matches(value: u8) -> bool {
+        Uint16::protocol_header_matches(value)
+    }
+
+    fn add_protocol_header(state: &mut State) -> EncodeResult {
+        Uint16::add_protocol_header(state)
+    }
+
+    fn primitive_pre_encode(state: &mut State, n: Self::PrimitiveType) {
+        Uint16::primitive_pre_encode(
+            state,
+            zig_zag_encode(n as i64) as <Uint16 as PrimitiveEnDecoder>::PrimitiveType,
+        );
+    }
+
+    fn primitive_encode(state: &mut State, n: Self::PrimitiveType) -> EncodeResult {
+        Uint16::primitive_encode(
+            state,
+            zig_zag_encode(n as i64) as <Uint16 as PrimitiveEnDecoder>::PrimitiveType,
+        )
+    }
+
+    fn primitive_decode(state: &mut State) -> DecodeResultT<Self::PrimitiveType> {
+        Ok(zig_zag_decode(Uint16::primitive_decode(state)? as u64) as Self::PrimitiveType)
+    }
+}
+
+impl EnDecoder for Int16 {}
+
+/// encoder/decoder for i32
+pub struct Int32();
+
+impl PrimitiveEnDecoder for Int32 {
+    type PrimitiveType = i32;
+    const PROTOCOL_PREFIX: u8 = Uint32::PROTOCOL_PREFIX;
+    const PROTOCOL_HEADER_SIZE: usize = Uint32::PROTOCOL_HEADER_SIZE;
+
+    fn protocol_header_matches(value: u8) -> bool {
+        Uint32::protocol_header_matches(value)
+    }
+
+    fn add_protocol_header(state: &mut State) -> EncodeResult {
+        Uint32::add_protocol_header(state)
+    }
+
+    fn primitive_pre_encode(state: &mut State, n: Self::PrimitiveType) {
+        Uint32::primitive_pre_encode(
+            state,
+            zig_zag_encode(n as i64) as <Uint32 as PrimitiveEnDecoder>::PrimitiveType,
+        );
+    }
+
+    fn primitive_encode(state: &mut State, n: Self::PrimitiveType) -> EncodeResult {
+        Uint32::primitive_encode(
+            state,
+            zig_zag_encode(n as i64) as <Uint32 as PrimitiveEnDecoder>::PrimitiveType,
+        )
+    }
+
+    fn primitive_decode(state: &mut State) -> DecodeResultT<Self::PrimitiveType> {
+        Ok(zig_zag_decode(Uint32::primitive_decode(state)? as u64) as Self::PrimitiveType)
+    }
+}
+
+impl EnDecoder for Int32 {}
+
+/// encoder/decoder for i64
+pub struct Int64();
+
+impl PrimitiveEnDecoder for Int64 {
+    type PrimitiveType = i64;
+    const PROTOCOL_PREFIX: u8 = Uint64::PROTOCOL_PREFIX;
+    const PROTOCOL_HEADER_SIZE: usize = Uint64::PROTOCOL_HEADER_SIZE;
+
+    fn protocol_header_matches(value: u8) -> bool {
+        Uint64::protocol_header_matches(value)
+    }
+
+    fn add_protocol_header(state: &mut State) -> EncodeResult {
+        Uint64::add_protocol_header(state)
+    }
+
+    fn primitive_pre_encode(state: &mut State, n: Self::PrimitiveType) {
+        Uint64::primitive_pre_encode(
+            state,
+            zig_zag_encode(n as i64) as <Uint64 as PrimitiveEnDecoder>::PrimitiveType,
+        );
+    }
+
+    fn primitive_encode(state: &mut State, n: Self::PrimitiveType) -> EncodeResult {
+        Uint64::primitive_encode(
+            state,
+            zig_zag_encode(n as i64) as <Uint64 as PrimitiveEnDecoder>::PrimitiveType,
+        )
+    }
+
+    fn primitive_decode(state: &mut State) -> DecodeResultT<Self::PrimitiveType> {
+        Ok(zig_zag_decode(Uint64::primitive_decode(state)? as u64) as Self::PrimitiveType)
+    }
+}
+
+impl EnDecoder for Int64 {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -325,6 +490,19 @@ mod tests {
                 buffer: Some(vec![0, 0, 0, 0, 0]),
             }
         );
+    }
+
+    #[test]
+    fn test_zig_zag_encode() {
+        assert_eq!(zig_zag_encode(0), 0);
+        assert_eq!(zig_zag_encode(1), 2);
+        assert_eq!(zig_zag_encode(2), 4);
+        assert_eq!(zig_zag_encode(3), 6);
+        assert_eq!(zig_zag_encode(4), 8);
+        assert_eq!(zig_zag_encode(5), 10);
+        assert_eq!(zig_zag_encode(6), 12);
+        assert_eq!(zig_zag_encode(42), 84);
+        assert_eq!(zig_zag_encode(-4200), 8399);
     }
 
     #[test]
@@ -410,5 +588,65 @@ mod tests {
         assert_eq!(state.start, state.end);
 
         assert_eq!(Uint8::decode(&mut state), Err(DecodeError::OutOfBounds));
+    }
+
+    #[test]
+    fn test_int() {
+        let mut state = State::new();
+
+        Int8::pre_encode(&mut state, 42);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 1,
+                buffer: None,
+            }
+        );
+
+        Int16::pre_encode(&mut state, -4200);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 4,
+                buffer: None,
+            }
+        );
+
+        state.alloc();
+
+        assert_eq!(Int8::encode(&mut state, 42), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 1,
+                end: 4,
+                buffer: Some(vec![84, 0, 0, 0]),
+            }
+        );
+
+        assert_eq!(Int16::encode(&mut state, -4200), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 4,
+                end: 4,
+                buffer: Some(vec![84, 0xFD, 207, 32]),
+            }
+        );
+
+        state.start = 0;
+        assert_eq!(Int8::decode(&mut state), Ok(42));
+        assert_eq!(state.start, 1);
+        assert_eq!(state.end, 4);
+
+        assert_eq!(Int16::decode(&mut state), Ok(-4200));
+        assert_eq!(state.start, 4);
+        assert_eq!(state.end, 4);
+
+        assert_eq!(state.start, state.end);
+
+        assert_eq!(Int8::decode(&mut state), Err(DecodeError::OutOfBounds));
     }
 }
