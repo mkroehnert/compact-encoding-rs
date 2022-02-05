@@ -121,6 +121,8 @@ impl Reader for State {
             return Err(DecodeError::BufferTooSmall);
         };
         match &self.buffer {
+            // TODO: may not be very performant
+            Some(buffer) if (buffer.len() - self.start) < size => Err(DecodeError::BufferTooSmall),
             Some(buffer) => {
                 let view = &buffer[self.start..self.start + size];
                 self.start += size;
@@ -310,6 +312,46 @@ impl Decode for u64 {
     }
 }
 
+// compact encoding for usize
+impl Encode for usize {
+    /// allocate the required size in State for current type
+    fn pre_encode(&self, state: &mut State) {
+        match *self as u128 {
+            x if x <= (U8_MAX_VALUE as u128) => (x as u8).pre_encode(state),
+            x if x <= (u16::MAX as u128) => (x as u16).pre_encode(state),
+            x if x <= (u32::MAX as u128) => (x as u32).pre_encode(state),
+            x if x <= (u64::MAX as u128) => (x as u64).pre_encode(state),
+            _ => unimplemented!(),
+        };
+    }
+
+    /// encode n into state.buffer
+    /// requires state.buffer to be allocated first
+    fn encode(&self, state: &mut State) -> EncodeResult {
+        match *self as u128 {
+            x if x <= (U8_MAX_VALUE as u128) => (x as u8).encode(state),
+            x if x <= (u16::MAX as u128) => (x as u16).encode(state),
+            x if x <= (u32::MAX as u128) => (x as u32).encode(state),
+            x if x <= (u64::MAX as u128) => (x as u64).encode(state),
+            _ => unimplemented!(),
+        }
+    }
+}
+
+/// compac decoding for usize
+impl Decode for usize {
+    fn decode(state: &mut State) -> DecodeResultT<Self> {
+        let buffer = state.peek_u8()?;
+        match buffer as u16 {
+            x if x <= U8_MAX_VALUE as u16 => u8::decode(state).map(|value| value as usize),
+            x if x <= U16_PREFIX as u16 => u16::decode(state).map(|value| value as usize),
+            x if x <= U32_PREFIX as u16 => u32::decode(state).map(|value| value as usize),
+            x if x <= U64_PREFIX as u16 => u64::decode(state).map(|value| value as usize),
+            _ => unimplemented!(),
+        }
+    }
+}
+
 //
 // signed integers
 //
@@ -447,5 +489,58 @@ impl Decode for f64 {
         let value: Self =
             Self::from_le_bytes(buffer.try_into().map_err(|_| DecodeError::BufferTooSmall)?);
         Ok(value)
+    }
+}
+
+//
+// buffers, arrays
+//
+
+/// compact encoding for Option<&[u8]>
+impl Encode for Option<&[u8]> {
+    /// allocate the required size in State for current type
+    fn pre_encode(&self, state: &mut State) {
+        match self {
+            Some(buffer) => {
+                buffer.len().pre_encode(state);
+                state.end += buffer.len();
+            }
+            None => state.end += 1,
+        };
+    }
+
+    /// encode n into state.buffer
+    /// requires state.buffer to be allocated first
+    fn encode(&self, state: &mut State) -> EncodeResult {
+        match self {
+            Some(buffer) => {
+                buffer.len().encode(state)?;
+                state.write(buffer)
+            }
+            None => state.write(&[0]),
+        }
+    }
+}
+
+/// compact decoding for Option<&[u8]>
+impl Decode for Option<Box<Vec<u8>>> {
+    fn decode(state: &mut State) -> DecodeResultT<Self> {
+        let buffer_size = usize::decode(state)?;
+        if buffer_size == 0 {
+            return Ok(None);
+        };
+        let buffer_ref = state.read_next(buffer_size)?;
+
+        println!(
+            "buffer: {} - {} {:?}",
+            buffer_size,
+            &buffer_ref.len(),
+            &buffer_ref
+        );
+        if buffer_ref.len() == buffer_size {
+            Ok(Some(Box::new(Vec::from(buffer_ref))))
+        } else {
+            Err(DecodeError::TypeMismatch)
+        }
     }
 }

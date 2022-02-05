@@ -27,7 +27,7 @@ least significant bit (LSB) for little endian = byte0
 | float32         | no header, encoded as little endian                            | [X]         | [ ]    |
 | float64         | no header, encoded as little endian                            | [X]         | [ ]    |
 |                 |                                                                |             |        |
-| buffer/uint8[]? |                                                                | [ ]         | [ ]    |
+| buffer/uint8[]? | encode length first as uint, then copy buffer                  | [X]         | [ ]    |
 | uint32[]        |                                                                | [ ]         | [ ]    |
 | array           |                                                                | [ ]         | [ ]    |
 |                 |                                                                |             |        |

@@ -323,4 +323,106 @@ mod tests {
         assert_eq!(f64::decode(&mut state), Ok(0.1 + 0.2));
         assert_eq!(state.start, state.end);
     }
+
+    #[test]
+    fn test_buffer() {
+        let mut state = State::new();
+
+        Some("hi".as_bytes()).pre_encode(&mut state);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 3,
+                buffer: None,
+            }
+        );
+        Some("hello".as_bytes()).pre_encode(&mut state);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 9,
+                buffer: None,
+            }
+        );
+        None.pre_encode(&mut state);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 10,
+                buffer: None,
+            }
+        );
+
+        state.alloc();
+
+        assert_eq!(Some("hi".as_bytes()).encode(&mut state), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 3,
+                end: 10,
+                buffer: Some(vec![
+                    2, 'h' as u8, 'i' as u8, // "hi"
+                    0, 0, 0, 0, 0, 0, // "hello"
+                    0, // None
+                ]),
+            }
+        );
+        assert_eq!(Some("hello".as_bytes()).encode(&mut state), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 9,
+                end: 10,
+                buffer: Some(vec![
+                    2, 'h' as u8, 'i' as u8, // "hi"
+                    5, 'h' as u8, 'e' as u8, 'l' as u8, 'l' as u8, 'o' as u8, // "hello"
+                    0,         // None
+                ]),
+            }
+        );
+        assert_eq!(None.encode(&mut state), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 10,
+                end: 10,
+                buffer: Some(vec![
+                    2, 'h' as u8, 'i' as u8, // "hi"
+                    5, 'h' as u8, 'e' as u8, 'l' as u8, 'l' as u8, 'o' as u8, // "hello"
+                    0,         // None
+                ]),
+            }
+        );
+
+        state.start = 0;
+        assert_eq!(
+            Option::<Box<Vec<u8>>>::decode(&mut state),
+            Ok(Some(Box::new(vec!['h' as u8, 'i' as u8])))
+        );
+        assert_eq!(
+            Option::<Box<Vec<u8>>>::decode(&mut state),
+            Ok(Some(Box::new(vec![
+                'h' as u8, 'e' as u8, 'l' as u8, 'l' as u8, 'o' as u8
+            ])))
+        );
+        assert_eq!(Option::<Box<Vec<u8>>>::decode(&mut state), Ok(None));
+        assert_eq!(state.start, state.end);
+        assert_eq!(
+            Option::<Box<Vec<u8>>>::decode(&mut state),
+            Err(DecodeError::BufferTooSmall)
+        );
+        // set a smaller buffer -> should throw an error
+        state.buffer = Some(Vec::from(&state.buffer.expect("buffer must exist")[0..8]));
+        state.start = 3;
+        // element at index 3 is 5, which is interpreted as the encoded buffer length
+        // however, the newly set buffer has only 4 elements left -> should throw an error
+        assert_eq!(
+            Option::<Box<Vec<u8>>>::decode(&mut state),
+            Err(DecodeError::BufferTooSmall)
+        );
+    }
 }
