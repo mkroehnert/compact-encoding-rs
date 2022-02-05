@@ -8,7 +8,7 @@ least significant bit (LSB) for little endian = byte0
 | Type            | Encoding                                                       | Implemented | Tested |
 |:----------------|:---------------------------------------------------------------|-------------|--------|
 | none            |                                                                | [ ]         | [ ]    |
-| bool            |                                                                | [ ]         | [ ]    |
+| bool            | true is encoded as 1u8, false as 0u8                           | [X]         | [ ]    |
 |                 |                                                                |             |        |
 | uint            | see dedicated uintX                                            | [-]         | [ ]    |
 | uint8           | [0xFC, byte0] (byte <= 0xFC)                                   | [X]         | [ ]    |

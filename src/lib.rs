@@ -161,6 +161,33 @@ pub trait Decode: Sized {
 }
 
 //
+// bool
+//
+
+/// compact encoding for bool
+impl Encode for bool {
+    /// allocate the required size in State for current type
+    fn pre_encode(&self, state: &mut State) {
+        state.end += std::mem::size_of::<u8>();
+    }
+
+    /// encode n into state.buffer
+    /// requires state.buffer to be allocated first
+    fn encode(&self, state: &mut State) -> EncodeResult {
+        // encode true as 1u8 and false as 0u8
+        state.write(&[if *self { 1u8 } else { 0u8 }])
+    }
+}
+
+/// compact decoding for u8
+impl Decode for bool {
+    fn decode(state: &mut State) -> DecodeResultT<Self> {
+        let value = state.read_next(std::mem::size_of::<u8>())?[0];
+        Ok(if value == 1 { true } else { false })
+    }
+}
+
+//
 // unsigned integers
 //
 
@@ -186,7 +213,7 @@ impl Encode for u8 {
     }
 }
 
-/// compac decoding for u8
+/// compact decoding for u8
 impl Decode for u8 {
     fn decode(state: &mut State) -> DecodeResultT<Self> {
         let header = state.peek_u8()?;
@@ -213,7 +240,7 @@ impl Encode for u16 {
     }
 }
 
-/// compac decoding for u16
+/// compact decoding for u16
 impl Decode for u16 {
     fn decode(state: &mut State) -> DecodeResultT<Self> {
         let buffer = state.read_next(1 + std::mem::size_of::<Self>())?;
@@ -253,7 +280,7 @@ fn encode_u32(value: u32) -> [u8; 4] {
     ]
 }
 
-/// compac decoding for u32
+/// compact decoding for u32
 impl Decode for u32 {
     fn decode(state: &mut State) -> DecodeResultT<Self> {
         let buffer = state.read_next(1 + std::mem::size_of::<Self>())?;
@@ -298,7 +325,7 @@ impl Encode for u64 {
     }
 }
 
-/// compac decoding for u64
+/// compact decoding for u64
 impl Decode for u64 {
     fn decode(state: &mut State) -> DecodeResultT<Self> {
         let buffer = state.read_next(1 + std::mem::size_of::<Self>())?;
@@ -338,7 +365,7 @@ impl Encode for usize {
     }
 }
 
-/// compac decoding for usize
+/// compact decoding for usize
 impl Decode for usize {
     fn decode(state: &mut State) -> DecodeResultT<Self> {
         let buffer = state.peek_u8()?;
@@ -370,7 +397,7 @@ impl Encode for i8 {
     }
 }
 
-/// compac decoding for i8
+/// compact decoding for i8
 impl Decode for i8 {
     fn decode(state: &mut State) -> DecodeResultT<Self> {
         Ok(zig_zag_decode(u8::decode(state)? as u64) as Self)
@@ -391,7 +418,7 @@ impl Encode for i16 {
     }
 }
 
-/// compac decoding for i16
+/// compact decoding for i16
 impl Decode for i16 {
     fn decode(state: &mut State) -> DecodeResultT<Self> {
         Ok(zig_zag_decode(u16::decode(state)? as u64) as Self)
@@ -412,7 +439,7 @@ impl Encode for i32 {
     }
 }
 
-/// compac decoding for i32
+/// compact decoding for i32
 impl Decode for i32 {
     fn decode(state: &mut State) -> DecodeResultT<Self> {
         Ok(zig_zag_decode(u32::decode(state)? as u64) as Self)
@@ -433,7 +460,7 @@ impl Encode for i64 {
     }
 }
 
-/// compac decoding for i64
+/// compact decoding for i64
 impl Decode for i64 {
     fn decode(state: &mut State) -> DecodeResultT<Self> {
         Ok(zig_zag_decode(u32::decode(state)? as u64) as Self)
@@ -458,7 +485,7 @@ impl Encode for f32 {
     }
 }
 
-/// compac decoding for f32
+/// compact decoding for f32
 impl Decode for f32 {
     fn decode(state: &mut State) -> DecodeResultT<Self> {
         let buffer = state.read_next(std::mem::size_of::<Self>())?;
@@ -482,7 +509,7 @@ impl Encode for f64 {
     }
 }
 
-/// compac decoding for f64
+/// compact decoding for f64
 impl Decode for f64 {
     fn decode(state: &mut State) -> DecodeResultT<Self> {
         let buffer = state.read_next(std::mem::size_of::<Self>())?;
