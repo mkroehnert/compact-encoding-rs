@@ -425,4 +425,198 @@ mod tests {
             Err(DecodeError::BufferTooSmall)
         );
     }
+
+    #[test]
+    fn test_uint32array() {
+        let mut state = State::new();
+
+        /*
+          const state = enc.state()
+
+          enc.uint32array.preencode(state, new Uint32Array([1]))
+          t.alike(state, { start: 0, end: 5, buffer: null })
+          enc.uint32array.preencode(state, new Uint32Array([42, 43]))
+          t.alike(state, { start: 0, end: 14, buffer: null })
+
+          state.buffer = Buffer.alloc(state.end)
+          enc.uint32array.encode(state, new Uint32Array([1]))
+          t.alike(state, { start: 5, end: 14, buffer: Buffer.from([1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]) })
+          enc.uint32array.encode(state, new Uint32Array([42, 43]))
+          t.alike(state, { start: 14, end: 14, buffer: Buffer.from([1, 1, 0, 0, 0, 2, 42, 0, 0, 0, 43, 0, 0, 0]) })
+
+          state.start = 0
+          t.alike(enc.uint32array.decode(state), new Uint32Array([1]))
+          t.alike(enc.uint32array.decode(state), new Uint32Array([42, 43]))
+          t.is(state.start, state.end)
+
+          t.exception(() => enc.uint32array.decode(state))
+        })
+        */
+    }
+
+    #[test]
+    fn test_array() {
+        let mut state = State::new();
+
+        /*
+          const state = enc.state()
+          const arr = enc.array(enc.bool)
+
+          arr.preencode(state, [true, false, true])
+          t.alike(state, { start: 0, end: 4, buffer: null })
+          arr.preencode(state, [false, false, true, true])
+          t.alike(state, { start: 0, end: 9, buffer: null })
+
+          state.buffer = Buffer.alloc(state.end)
+          arr.encode(state, [true, false, true])
+          t.alike(state, { start: 4, end: 9, buffer: Buffer.from([3, 1, 0, 1, 0, 0, 0, 0, 0]) })
+          arr.encode(state, [false, false, true, true])
+          t.alike(state, { start: 9, end: 9, buffer: Buffer.from([3, 1, 0, 1, 4, 0, 0, 1, 1]) })
+
+          state.start = 0
+          t.alike(arr.decode(state), [true, false, true])
+          t.alike(arr.decode(state), [false, false, true, true])
+          t.is(state.start, state.end)
+
+          t.exception(() => arr.decode(state))
+        })
+        */
+    }
+
+    #[test]
+    fn test_string() {
+        let mut state = State::new();
+
+        /*
+          const state = enc.state()
+
+          enc.string.preencode(state, '🌾')
+          t.alike(state, { start: 0, end: 5, buffer: null })
+          enc.string.preencode(state, 'høsten er fin')
+          t.alike(state, { start: 0, end: 20, buffer: null })
+
+          state.buffer = Buffer.alloc(state.end)
+          enc.string.encode(state, '🌾')
+          t.alike(state, { start: 5, end: 20, buffer: Buffer.from('\x04🌾\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00') })
+          enc.string.encode(state, 'høsten er fin')
+          t.alike(state, { start: 20, end: 20, buffer: Buffer.from('\x04🌾\x0ehøsten er fin') })
+
+          state.start = 0
+          t.is(enc.string.decode(state), '🌾')
+          t.is(enc.string.decode(state), 'høsten er fin')
+          t.is(state.start, state.end)
+
+          t.exception(() => enc.string.decode(state))
+        })
+        */
+    }
+
+    #[test]
+    fn test_raw() {
+        let mut state = State::new();
+
+        /*
+          const state = enc.state()
+
+          enc.raw.preencode(state, Buffer.from('hi'))
+          t.alike(state, { start: 0, end: 2, buffer: null })
+
+          state.buffer = Buffer.alloc(state.end)
+          enc.raw.encode(state, Buffer.from('hi'))
+          t.alike(state, { start: 2, end: 2, buffer: Buffer.from('hi') })
+
+          state.start = 0
+          t.alike(enc.raw.decode(state), Buffer.from('hi'))
+          t.is(state.start, state.end)
+        })
+        */
+    }
+
+    #[test]
+    fn test_fixed32() {
+        let mut state = State::new();
+
+        /*
+          const state = enc.state()
+
+          enc.fixed32.preencode(state, Buffer.alloc(32).fill('a'))
+          t.alike(state, { start: 0, end: 32, buffer: null })
+          enc.fixed32.preencode(state, Buffer.alloc(32).fill('b'))
+          t.alike(state, { start: 0, end: 64, buffer: null })
+
+          state.buffer = Buffer.alloc(state.end)
+          enc.fixed32.encode(state, Buffer.alloc(32).fill('a'))
+          t.alike(state, { start: 32, end: 64, buffer: Buffer.alloc(64).fill('a', 0, 32) })
+          enc.fixed32.encode(state, Buffer.alloc(32).fill('b'))
+          t.alike(state, { start: 64, end: 64, buffer: Buffer.alloc(64).fill('a', 0, 32).fill('b', 32, 64) })
+
+          state.start = 0
+          t.alike(enc.fixed32.decode(state), Buffer.alloc(32).fill('a'))
+          t.alike(enc.fixed32.decode(state), Buffer.alloc(32).fill('b'))
+          t.is(state.start, state.end)
+
+          t.exception(() => enc.fixed32.decode(state))
+        })
+        */
+    }
+
+    #[test]
+    fn test_fixed64() {
+        let mut state = State::new();
+
+        /*
+          const state = enc.state()
+
+          enc.fixed64.preencode(state, Buffer.alloc(64).fill('a'))
+          t.alike(state, { start: 0, end: 64, buffer: null })
+          enc.fixed64.preencode(state, Buffer.alloc(64).fill('b'))
+          t.alike(state, { start: 0, end: 128, buffer: null })
+
+          state.buffer = Buffer.alloc(state.end)
+          enc.fixed64.encode(state, Buffer.alloc(64).fill('a'))
+          t.alike(state, { start: 64, end: 128, buffer: Buffer.alloc(128).fill('a', 0, 64) })
+          enc.fixed64.encode(state, Buffer.alloc(64).fill('b'))
+          t.alike(state, { start: 128, end: 128, buffer: Buffer.alloc(128).fill('a', 0, 64).fill('b', 64, 128) })
+
+          state.start = 0
+          t.alike(enc.fixed64.decode(state), Buffer.alloc(64).fill('a'))
+          t.alike(enc.fixed64.decode(state), Buffer.alloc(64).fill('b'))
+          t.is(state.start, state.end)
+
+          t.exception(() => enc.fixed64.decode(state))
+        })
+        */
+    }
+
+    #[test]
+    fn test_fixed() {
+        let mut state = State::new();
+
+        // TODO: this test may not make much sense
+        /*
+          const state = enc.state()
+          const fixed = enc.fixed(3)
+
+          fixed.preencode(state, Buffer.alloc(3).fill('a'))
+          t.alike(state, { start: 0, end: 3, buffer: null })
+          fixed.preencode(state, Buffer.alloc(3).fill('b'))
+          t.alike(state, { start: 0, end: 6, buffer: null })
+
+          state.buffer = Buffer.alloc(state.end)
+          fixed.encode(state, Buffer.alloc(3).fill('a'))
+          t.alike(state, { start: 3, end: 6, buffer: Buffer.alloc(6).fill('a', 0, 3) })
+          fixed.encode(state, Buffer.alloc(3).fill('b'))
+          t.alike(state, { start: 6, end: 6, buffer: Buffer.alloc(6).fill('a', 0, 3).fill('b', 3, 6) })
+
+          state.start = 0
+          t.alike(fixed.decode(state), Buffer.alloc(3).fill('a'))
+          t.alike(fixed.decode(state), Buffer.alloc(3).fill('b'))
+          t.is(state.start, state.end)
+
+          t.exception(() => fixed.decode(state))
+          state.start = 4
+          t.exception(() => fixed.decode(state))
+        })
+        */
+    }
 }
