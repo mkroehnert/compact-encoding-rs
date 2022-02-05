@@ -9,8 +9,9 @@ use compact_encoding::*;
 
 let mut state = State::new();
 
+let unsigned8: u8 = 42;
 // use pre_encode to determine the required buffer size
-Uint8::pre_encode(&mut state, 42);
+unsigned8.pre_encode(&mut state);
 //String::pre_encode(&mut state, "hi");
 
 println!("State: {:#?}", state);
@@ -19,13 +20,13 @@ println!("State: {:#?}", state);
 state.alloc();
 
 // actually encode the values into the buffer
-Uint8::encode(&mut state, 42);
+unsigned8.encode(&mut state);
 //String::encode(&mut state, "hi");
 
 // for decoding, the decode() method is used (state.start should point to start of buffer)
 state.start = 0;
 
-let uint8 = Uint8::decode(&mut state).expect("could not decode");
+let uint8 = u8::decode(&mut state).expect("could not decode");
 println!("{:?}", uint8);
 //let string = String::decode(&mut state).expect("could not decode"));
 //println!("{:?}", string);
@@ -37,21 +38,21 @@ println!("{:?}", uint8);
 
 See [State]
 
-### `enc.preencode(state, val)`
+### `val.preencode(state);`
 
 Does a fast preencode dry-run that only sets state.end.
 Use this to figure out the required buffer size.
 Afterwards call `state.alloc();` to create `state.buffer`.
 
-### `enc.encode(state, val)`
+### `val.encode(state).expect("could not encode");`
 
 Encodes `val` into `state.buffer` at position `state.start`.
 Updates `state.start` to point after the encoded value when done.
 
-### `val = enc.decode(state)`
+### `let val = <type>::decode(state).expect("could not decode");`
 
 Decodes a value from `state.buffer` at position `state.start`.
-Updates `state.start` to point after the decoded value when done in the buffer.
+Updates `state.start` to point after the decoded value in the buffer when done.
 
 ## Helpers
 
