@@ -486,29 +486,57 @@ mod tests {
     #[test]
     fn test_string() {
         let mut state = State::new();
+        let emoji_string = "🌾";
+        let utf8_string = "høsten er fin";
 
-        /*
-          const state = enc.state()
+        emoji_string.pre_encode(&mut state);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 5,
+                buffer: None,
+            }
+        );
 
-          enc.string.preencode(state, '🌾')
-          t.alike(state, { start: 0, end: 5, buffer: null })
-          enc.string.preencode(state, 'høsten er fin')
-          t.alike(state, { start: 0, end: 20, buffer: null })
+        utf8_string.pre_encode(&mut state);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 20,
+                buffer: None,
+            }
+        );
 
-          state.buffer = Buffer.alloc(state.end)
-          enc.string.encode(state, '🌾')
-          t.alike(state, { start: 5, end: 20, buffer: Buffer.from('\x04🌾\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00') })
-          enc.string.encode(state, 'høsten er fin')
-          t.alike(state, { start: 20, end: 20, buffer: Buffer.from('\x04🌾\x0ehøsten er fin') })
+        state.alloc();
 
-          state.start = 0
-          t.is(enc.string.decode(state), '🌾')
-          t.is(enc.string.decode(state), 'høsten er fin')
-          t.is(state.start, state.end)
+        assert_eq!((&emoji_string).encode(&mut state), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 5,
+                end: 20,
+                buffer: Some("\x04🌾\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".as_bytes().to_vec()),
+            }
+        );
 
-          t.exception(() => enc.string.decode(state))
-        })
-        */
+        assert_eq!((&utf8_string).encode(&mut state), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 20,
+                end: 20,
+                buffer: Some("\x04🌾\x0ehøsten er fin".as_bytes().to_vec()),
+            }
+        );
+
+        state.start = 0;
+        assert_eq!(String::decode(&mut state), Ok(emoji_string.into()));
+        assert_eq!(String::decode(&mut state), Ok(utf8_string.into()));
+        assert_eq!(state.start, state.end);
+
+        assert_eq!(String::decode(&mut state), Err(DecodeError::BufferTooSmall));
     }
 
     #[test]

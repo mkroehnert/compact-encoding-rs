@@ -610,3 +610,78 @@ impl<'a> Decode for Raw<'a> {
         }
     }
 }
+
+/// compact encoding for &str
+/// TODO: implement for Into<&str> instead?
+impl Encode for &str {
+    /// allocate the required size in State for current type
+    fn pre_encode(&self, state: &mut State) {
+        // len always returns number of bytes
+        self.len().pre_encode(state);
+        state.end += self.len();
+    }
+
+    /// encode self into state.buffer
+    /// requires state.buffer to be allocated first
+    fn encode(&self, state: &mut State) -> EncodeResult {
+        self.len().encode(state)?;
+        state.write(self.as_bytes())
+    }
+}
+
+/// compact decoding into String
+impl Decode for String {
+    fn decode(state: &mut State) -> DecodeResultT<Self> {
+        let buffer_size = usize::decode(state)?;
+        if buffer_size == 0 {
+            return Ok("".into());
+        } else if (state.start + buffer_size) > state.end {
+            return Err(DecodeError::BufferTooSmall);
+        }
+        let buffer_ref = state.read_next(buffer_size)?;
+        /*
+            const s = b.toString(state.buffer, 'utf8', state.start, state.start += len)
+            if (b.byteLength(s) !== len || state.start > state.end) throw new Error('Out of bounds')
+        */
+        if buffer_ref.len() != buffer_size {
+            Err(DecodeError::BufferTooSmall)
+        } else {
+            Ok(String::from_utf8(buffer_ref.into()).map_err(|_| DecodeError::InvalidUtf8)?)
+        }
+    }
+}
+
+/*
+/// compact encoding for &[u32]
+impl Encode for &[u32] {
+    /// allocate the required size in State for current type
+    fn pre_encode(&self, state: &mut State) {
+        self.len().pre_encode(state);
+        state.end += self.len();
+    }
+
+    /// encode n into state.buffer
+    /// requires state.buffer to be allocated first
+    fn encode(&self, state: &mut State) -> EncodeResult {
+        self.len().encode(state)?;
+        state.write(self)
+    }
+}
+
+/// compact decoding for Vec<u32>
+impl Decode for Vec<u32> {
+    fn decode(state: &mut State) -> DecodeResultT<Self> {
+        let buffer_size = usize::decode(state)?;
+        if buffer_size == 0 {
+            return Ok(None);
+        };
+        let buffer_ref = state.read_next(buffer_size)?;
+
+        if buffer_ref.len() == buffer_size {
+            Ok(Some(Box::new(Vec::from(buffer_ref))))
+        } else {
+            Err(DecodeError::TypeMismatch)
+        }
+    }
+}
+*/

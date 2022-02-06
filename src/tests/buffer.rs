@@ -383,3 +383,109 @@ fn test_raw_decode_non_empty() {
 
     assert_eq!(Raw::decode(&mut state), Ok(Raw::Vec(buffer)));
 }
+
+//
+// string
+//
+
+#[test]
+fn test_string_pre_encode_empty() {
+    let mut state = State::new();
+    "".pre_encode(&mut state);
+    assert_eq!(
+        state,
+        State {
+            start: 0,
+            end: 1,
+            buffer: None,
+        }
+    );
+}
+
+#[test]
+fn test_string_pre_encode_short() {
+    let mut state = State::new();
+    let buffer = "content".as_bytes();
+
+    Some(buffer).pre_encode(&mut state);
+    assert_eq!(
+        state,
+        State {
+            start: 0,
+            end: 8,
+            buffer: None,
+        }
+    );
+}
+
+#[test]
+fn test_string_encode_empty() {
+    let mut state = State::new();
+
+    "".pre_encode(&mut state);
+
+    state.alloc();
+
+    assert_eq!("".encode(&mut state), Ok(()));
+    assert_eq!(
+        state,
+        State {
+            start: 1,
+            end: 1,
+            buffer: Some(vec![0]),
+        }
+    );
+}
+
+#[test]
+fn test_string_encode_short() {
+    let mut state = State::new();
+
+    let buffer = "content";
+
+    buffer.pre_encode(&mut state);
+
+    state.alloc();
+
+    assert_eq!(buffer.encode(&mut state), Ok(()));
+    assert_eq!(
+        state,
+        State {
+            start: 8,
+            end: 8,
+            buffer: Some("\x07content".as_bytes().to_vec()),
+        }
+    );
+}
+
+#[test]
+fn test_string_decode_empty() {
+    let mut state = State::new();
+
+    "".pre_encode(&mut state);
+
+    state.alloc();
+
+    assert_eq!("".encode(&mut state), Ok(()));
+
+    state.start = 0;
+    assert_eq!(String::decode(&mut state), Ok("".into()));
+    assert_eq!(state.start, state.end);
+}
+
+#[test]
+fn test_string_decode_short() {
+    let mut state = State::new();
+
+    let buffer = "content";
+
+    buffer.pre_encode(&mut state);
+
+    state.alloc();
+
+    assert_eq!(buffer.encode(&mut state), Ok(()));
+
+    state.start = 0;
+    assert_eq!(String::decode(&mut state), Ok("content".into()));
+    assert_eq!(state.start, state.end);
+}

@@ -36,6 +36,8 @@ pub enum DecodeError {
     TypeNotSupported,
     /// type does not match the expected type to decode
     TypeMismatch,
+    /// buffer did not contain valid UTF8 during decoding to &str
+    InvalidUtf8,
 }
 
 impl std::fmt::Display for DecodeError {
@@ -46,6 +48,12 @@ impl std::fmt::Display for DecodeError {
             Self::TypeNotSupported => write!(f, "the type is not supported by compact-encoding"),
             Self::TypeMismatch => {
                 write!(f, "the encoding does not match the type to be decoded into")
+            }
+            Self::InvalidUtf8 => {
+                write!(
+                    f,
+                    "the buffer did not contain a valid UTF8 string when decoding to &str"
+                )
             }
         }
     }
