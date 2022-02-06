@@ -56,6 +56,7 @@ const U8_MAX_VALUE: u8 = 0xFC;
 const U16_PREFIX: u8 = 0xFD;
 const U32_PREFIX: u8 = 0xFE;
 const U64_PREFIX: u8 = 0xFF;
+const MAX_ARRAY_DECODE_SIZE: usize = 1048576;
 
 /// encode value from signed i64 into u64
 pub fn zig_zag_encode(value: i64) -> u64 {
@@ -648,6 +649,80 @@ impl Decode for String {
         } else {
             Ok(String::from_utf8(buffer_ref.into()).map_err(|_| DecodeError::InvalidUtf8)?)
         }
+    }
+}
+
+/// compact encoding for arrays [T; N]
+impl<T, const N: usize> Encode for [T; N]
+where
+    T: Encode,
+{
+    /// allocate the required size in State for current type
+    fn pre_encode(&self, state: &mut State) {
+        N.pre_encode(state);
+        // TODO check for MAX_ARRAY_DECODE_SIZE
+        for element in self.iter() {
+            element.pre_encode(state);
+        }
+    }
+
+    /// encode self into state.buffer
+    /// requires state.buffer to be allocated first
+    fn encode(&self, state: &mut State) -> EncodeResult {
+        N.encode(state)?;
+        // TODO check for MAX_ARRAY_DECODE_SIZE
+        for element in self.iter() {
+            element.encode(state)?;
+        }
+        Ok(())
+    }
+}
+
+/// compact encoding for Vec<T>
+impl<T> Encode for Vec<T>
+where
+    T: Encode,
+{
+    /// allocate the required size in State for current type
+    fn pre_encode(&self, state: &mut State) {
+        self.len().pre_encode(state);
+        // TODO check for MAX_ARRAY_DECODE_SIZE
+        for element in self.iter() {
+            element.pre_encode(state);
+        }
+    }
+
+    /// encode self into state.buffer
+    /// requires state.buffer to be allocated first
+    fn encode(&self, state: &mut State) -> EncodeResult {
+        self.len().encode(state)?;
+        // TODO check for MAX_ARRAY_DECODE_SIZE
+        for element in self.iter() {
+            element.encode(state)?;
+        }
+        Ok(())
+    }
+}
+
+/// compact decoding into Vec<T>
+impl<T> Decode for Vec<T>
+where
+    T: Decode,
+{
+    fn decode(state: &mut State) -> DecodeResultT<Self> {
+        let buffer_size = usize::decode(state)?;
+        if buffer_size == 0 {
+            return Ok(vec![]);
+        } else if (state.start + buffer_size) > state.end {
+            return Err(DecodeError::BufferTooSmall);
+        } else if buffer_size > MAX_ARRAY_DECODE_SIZE {
+            return Err(DecodeError::ArrayTooLarge);
+        }
+        let mut vec: Vec<T> = Vec::with_capacity(buffer_size);
+        for _ in 0..buffer_size {
+            vec.push(T::decode(state)?);
+        }
+        Ok(vec)
     }
 }
 

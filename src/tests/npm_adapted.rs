@@ -458,29 +458,71 @@ mod tests {
     fn test_array() {
         let mut state = State::new();
 
-        /*
-          const state = enc.state()
-          const arr = enc.array(enc.bool)
+        let array1 = [true, false, true];
+        let vec1 = vec![false, false, true, true];
 
-          arr.preencode(state, [true, false, true])
-          t.alike(state, { start: 0, end: 4, buffer: null })
-          arr.preencode(state, [false, false, true, true])
-          t.alike(state, { start: 0, end: 9, buffer: null })
+        array1.pre_encode(&mut state);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 4,
+                buffer: None,
+            }
+        );
 
-          state.buffer = Buffer.alloc(state.end)
-          arr.encode(state, [true, false, true])
-          t.alike(state, { start: 4, end: 9, buffer: Buffer.from([3, 1, 0, 1, 0, 0, 0, 0, 0]) })
-          arr.encode(state, [false, false, true, true])
-          t.alike(state, { start: 9, end: 9, buffer: Buffer.from([3, 1, 0, 1, 4, 0, 0, 1, 1]) })
+        vec1.pre_encode(&mut state);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 9,
+                buffer: None,
+            }
+        );
 
-          state.start = 0
-          t.alike(arr.decode(state), [true, false, true])
-          t.alike(arr.decode(state), [false, false, true, true])
-          t.is(state.start, state.end)
+        state.alloc();
+        assert_eq!(array1.encode(&mut state), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 4,
+                end: 9,
+                buffer: Some(vec![
+                    3, // array length
+                    1, 0, 1, // array content
+                    0, // vec length
+                    0, 0, 0, 0, // vec content
+                ]),
+            }
+        );
 
-          t.exception(() => arr.decode(state))
-        })
-        */
+        assert_eq!(vec1.encode(&mut state), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 9,
+                end: 9,
+                buffer: Some(vec![
+                    3, // array length
+                    1, 0, 1, // array content
+                    4, // vec length
+                    0, 0, 1, 1, // vec content
+                ]),
+            }
+        );
+
+        state.start = 0;
+        assert_eq!(Vec::<bool>::decode(&mut state), Ok(vec![true, false, true]));
+        assert_eq!(
+            Vec::<bool>::decode(&mut state),
+            Ok(vec![false, false, true, true])
+        );
+        assert_eq!(state.start, state.end);
+        assert_eq!(
+            Vec::<bool>::decode(&mut state),
+            Err(DecodeError::BufferTooSmall)
+        );
     }
 
     #[test]

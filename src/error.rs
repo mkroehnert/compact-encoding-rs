@@ -38,6 +38,8 @@ pub enum DecodeError {
     TypeMismatch,
     /// buffer did not contain valid UTF8 during decoding to &str
     InvalidUtf8,
+    /// encoded array is too large for decoding
+    ArrayTooLarge,
 }
 
 impl std::fmt::Display for DecodeError {
@@ -53,6 +55,14 @@ impl std::fmt::Display for DecodeError {
                 write!(
                     f,
                     "the buffer did not contain a valid UTF8 string when decoding to &str"
+                )
+            }
+
+            Self::ArrayTooLarge => {
+                write!(
+                    f,
+                    "the encoded array is bigger than the maximum supported array size of {}",
+                    crate::MAX_ARRAY_DECODE_SIZE
                 )
             }
         }

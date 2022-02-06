@@ -29,7 +29,7 @@ least significant bit (LSB) for little endian = byte0
 |                 |                                                                  |             |        |
 | buffer/uint8[]? | encode length first as uint, then copy buffer                    | [X]         | [ ]    |
 | uint32[]        |                                                                  | [ ]         | [ ]    |
-| array           |                                                                  | [ ]         | [ ]    |
+| array           | encode length first, then all members (must be same type)        | [X]         | [ ]    |
 |                 |                                                                  |             |        |
 | raw             | buffer gets copied, no header, decoding returns remaining buffer | [X]         | [ ]    |
 |                 |                                                                  |             |        |
@@ -45,6 +45,7 @@ least significant bit (LSB) for little endian = byte0
 * buffer: a buffer is regarded as a &[u8] slice, which can not be a nullptr. Therefore, the slice is currently wrapped in an Option for expressing non-existent buffers.
 * raw: since the Encoder/Decoder traits are attached to types, en-/decoding a buffer as raw is attached to the Raw enum. This allows encoding different buffer types as raw and return a newly allocated buffer during decoding. (This resembles the JS implementation, where a new Buffer is returned).
 * String: first implementation encodes &str and decodes to String (due to new buffer allocation) 
+* Array: encoding for [T; N] and Vec<T>, decoding currently only into Vec<T>
 
 # compact-encoding-struct
 
