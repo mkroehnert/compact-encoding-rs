@@ -8,6 +8,9 @@ mod npm_adapted;
 mod basic;
 
 #[cfg(test)]
+mod buffer;
+
+#[cfg(test)]
 mod float;
 
 #[cfg(test)]

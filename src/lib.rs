@@ -558,16 +558,55 @@ impl Decode for Option<Box<Vec<u8>>> {
         };
         let buffer_ref = state.read_next(buffer_size)?;
 
-        println!(
-            "buffer: {} - {} {:?}",
-            buffer_size,
-            &buffer_ref.len(),
-            &buffer_ref
-        );
         if buffer_ref.len() == buffer_size {
             Ok(Some(Box::new(Vec::from(buffer_ref))))
         } else {
             Err(DecodeError::TypeMismatch)
+        }
+    }
+}
+
+/// wrapper struct for encoding plain buffers without length information
+#[derive(Debug, PartialEq)]
+pub enum Raw<'a> {
+    /// enum variant which is returned by Decode
+    Vec(Vec<u8>), // TODO: Replace Vec with Box<Vec>?
+    VecRef(&'a Vec<u8>),
+    Slice(&'a [u8]),
+}
+
+/// compact encoding for raw buffer
+impl<'a> Encode for Raw<'a> {
+    /// allocate the required size in State for current type
+    fn pre_encode(&self, state: &mut State) {
+        match *self {
+            Raw::Vec(ref buffer) => state.end += buffer.len(),
+            Raw::VecRef(buffer) => state.end += buffer.len(),
+            Raw::Slice(slice) => state.end += slice.len(),
+        }
+    }
+
+    /// encode n into state.buffer
+    /// requires state.buffer to be allocated first
+    fn encode(&self, state: &mut State) -> EncodeResult {
+        match *self {
+            Raw::Vec(ref buffer) => state.write(&buffer),
+            Raw::VecRef(buffer) => state.write(&buffer),
+            Raw::Slice(slice) => state.write(slice),
+        }
+    }
+}
+
+/// compact decoding for Option<&[u8]>
+impl<'a> Decode for Raw<'a> {
+    fn decode(state: &mut State) -> DecodeResultT<Self> {
+        let buffer_size = state.end - state.start;
+        if buffer_size == 0 {
+            Ok(Raw::Vec(vec![]))
+        } else {
+            let buffer_ref = state.read_next(buffer_size)?;
+
+            Ok(Raw::Vec(buffer_ref.into()))
         }
     }
 }

@@ -515,21 +515,34 @@ mod tests {
     fn test_raw() {
         let mut state = State::new();
 
-        /*
-          const state = enc.state()
+        let buffer = "hi".as_bytes();
 
-          enc.raw.preencode(state, Buffer.from('hi'))
-          t.alike(state, { start: 0, end: 2, buffer: null })
+        Raw::Slice(buffer).pre_encode(&mut state);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 2,
+                buffer: None,
+            }
+        );
 
-          state.buffer = Buffer.alloc(state.end)
-          enc.raw.encode(state, Buffer.from('hi'))
-          t.alike(state, { start: 2, end: 2, buffer: Buffer.from('hi') })
+        state.alloc();
+        assert_eq!(Raw::Slice(buffer).encode(&mut state), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 2,
+                end: 2,
+                buffer: Some(vec![
+                    'h' as u8, 'i' as u8, // "hi"
+                ]),
+            }
+        );
 
-          state.start = 0
-          t.alike(enc.raw.decode(state), Buffer.from('hi'))
-          t.is(state.start, state.end)
-        })
-        */
+        state.start = 0;
+        assert_eq!(Raw::decode(&mut state), Ok(Raw::Vec(buffer.into())));
+        assert_eq!(state.start, state.end);
     }
 
     #[test]

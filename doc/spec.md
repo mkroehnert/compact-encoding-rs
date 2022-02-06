@@ -41,6 +41,10 @@ least significant bit (LSB) for little endian = byte0
 
 ## zigzag en/de-coding
 
+## differences to JS implementation
+* buffer: a buffer is regarded as a &[u8] slice, which can not be a nullptr. Therefore, the slice is currently wrapped in an Option for expressing non-existent buffers.
+* raw: since the Encoder/Decoder traits are attached to types, en-/decoding a buffer as raw is attached to the Raw enum. This allows encoding different buffer types as raw and return a newly allocated buffer during decoding. (This resembles the JS implementation, where a new Buffer is returned).
+
 # compact-encoding-struct
 
 # compact-encoding-net
