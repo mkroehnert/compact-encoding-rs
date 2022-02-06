@@ -4,6 +4,184 @@
 use crate::*;
 
 //
+// buffer
+//
+
+#[test]
+fn test_buffer_pre_encode_empty() {
+    let mut state = State::new();
+    None.pre_encode(&mut state);
+    assert_eq!(
+        state,
+        State {
+            start: 0,
+            end: 1,
+            buffer: None,
+        }
+    );
+}
+
+#[test]
+fn test_buffer_pre_encode_short() {
+    let mut state = State::new();
+    let buffer = "content".as_bytes();
+
+    Some(buffer).pre_encode(&mut state);
+    assert_eq!(
+        state,
+        State {
+            start: 0,
+            end: 8,
+            buffer: None,
+        }
+    );
+}
+
+#[test]
+fn test_buffer_pre_encode_long() {
+    let mut state = State::new();
+
+    const BUFFER_LONG_SIZE: usize = u8::MAX as usize + 1;
+    let buffer_long: Vec<u8> = vec![3u8; BUFFER_LONG_SIZE];
+
+    Some(buffer_long.as_slice()).pre_encode(&mut state);
+    assert_eq!(
+        state,
+        State {
+            start: 0,
+            end: 3 + BUFFER_LONG_SIZE, // buffer length is encoded as u16, since size is larger than u8::MAX
+            buffer: None,
+        }
+    );
+}
+
+#[test]
+fn test_buffer_encode_empty() {
+    let mut state = State::new();
+
+    None.pre_encode(&mut state);
+
+    state.alloc();
+
+    assert_eq!(None.encode(&mut state), Ok(()));
+    assert_eq!(
+        state,
+        State {
+            start: 1,
+            end: 1,
+            buffer: Some(vec![0]),
+        }
+    );
+}
+
+#[test]
+fn test_buffer_encode_short() {
+    let mut state = State::new();
+
+    let buffer = "content";
+
+    Some(buffer.as_bytes()).pre_encode(&mut state);
+
+    state.alloc();
+
+    assert_eq!(Some(buffer.as_bytes()).encode(&mut state), Ok(()));
+
+    let mut expected_buffer: Vec<u8> = vec![7; 8];
+    expected_buffer[1..].copy_from_slice(buffer.as_bytes());
+    assert_eq!(
+        state,
+        State {
+            start: 8,
+            end: 8,
+            buffer: Some(expected_buffer),
+        }
+    );
+}
+
+#[test]
+fn test_buffer_encode_long() {
+    let mut state = State::new();
+
+    const BUFFER_LONG_SIZE: usize = u8::MAX as usize + 1;
+    let buffer: Vec<u8> = vec![3u8; BUFFER_LONG_SIZE];
+
+    Some(buffer.as_slice()).pre_encode(&mut state);
+
+    state.alloc();
+
+    assert_eq!(Some(buffer.as_slice()).encode(&mut state), Ok(()));
+    let mut expected_buffer: Vec<u8> = vec![0; 3 + BUFFER_LONG_SIZE];
+    // u16 encoded header size
+    expected_buffer[0..3].copy_from_slice(&[0xFD, 0, 1]);
+    // buffer content
+    expected_buffer[3..].copy_from_slice(buffer.as_slice());
+    assert_eq!(
+        state,
+        State {
+            start: 3 + BUFFER_LONG_SIZE,
+            end: 3 + BUFFER_LONG_SIZE,
+            buffer: Some(expected_buffer),
+        }
+    );
+}
+
+#[test]
+fn test_buffer_decode_empty() {
+    let mut state = State::new();
+
+    None.pre_encode(&mut state);
+
+    state.alloc();
+
+    assert_eq!(None.encode(&mut state), Ok(()));
+
+    state.start = 0;
+    assert_eq!(Option::<Box<Vec<u8>>>::decode(&mut state), Ok(None));
+    assert_eq!(state.start, state.end);
+}
+
+#[test]
+fn test_buffer_decode_short() {
+    let mut state = State::new();
+
+    let buffer = "content";
+
+    Some(buffer.as_bytes()).pre_encode(&mut state);
+
+    state.alloc();
+
+    assert_eq!(Some(buffer.as_bytes()).encode(&mut state), Ok(()));
+
+    state.start = 0;
+    assert_eq!(
+        Option::<Box<Vec<u8>>>::decode(&mut state),
+        Ok(Some(Box::new(buffer.into())))
+    );
+    assert_eq!(state.start, state.end);
+}
+
+#[test]
+fn test_buffer_decode_long() {
+    let mut state = State::new();
+
+    const BUFFER_LONG_SIZE: usize = u8::MAX as usize + 1;
+    let buffer = vec![3u8; BUFFER_LONG_SIZE];
+
+    Some(buffer.as_slice()).pre_encode(&mut state);
+
+    state.alloc();
+
+    assert_eq!(Some(buffer.as_slice()).encode(&mut state), Ok(()));
+
+    state.start = 0;
+    assert_eq!(
+        Option::<Box<Vec<u8>>>::decode(&mut state),
+        Ok(Some(Box::new(buffer.into())))
+    );
+    assert_eq!(state.start, state.end);
+}
+
+//
 // raw
 //
 
