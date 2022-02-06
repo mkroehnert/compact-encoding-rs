@@ -517,7 +517,11 @@ mod tests {
             State {
                 start: 5,
                 end: 20,
-                buffer: Some("\x04🌾\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".as_bytes().to_vec()),
+                buffer: Some(
+                    "\x04🌾\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".
+                        as_bytes()
+                        .to_vec()
+                ),
             }
         );
 
