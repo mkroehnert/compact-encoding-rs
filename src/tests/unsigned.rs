@@ -6,55 +6,6 @@ mod tests {
     use crate::*;
 
     #[test]
-    fn test_new_empty_state() {
-        let state = State::new();
-        assert_eq!(
-            state,
-            State {
-                start: 0,
-                end: 0,
-                buffer: None,
-            }
-        );
-    }
-
-    #[test]
-    fn test_state_alloc() {
-        let mut state = State::new();
-        assert_eq!(
-            state,
-            State {
-                start: 0,
-                end: 0,
-                buffer: None,
-            }
-        );
-        state.end = 5;
-        state.alloc();
-        assert_eq!(
-            state,
-            State {
-                start: 0,
-                end: 5,
-                buffer: Some(vec![0, 0, 0, 0, 0]),
-            }
-        );
-    }
-
-    #[test]
-    fn test_zig_zag_encode() {
-        assert_eq!(zig_zag_encode(0), 0);
-        assert_eq!(zig_zag_encode(1), 2);
-        assert_eq!(zig_zag_encode(2), 4);
-        assert_eq!(zig_zag_encode(3), 6);
-        assert_eq!(zig_zag_encode(4), 8);
-        assert_eq!(zig_zag_encode(5), 10);
-        assert_eq!(zig_zag_encode(6), 12);
-        assert_eq!(zig_zag_encode(42), 84);
-        assert_eq!(zig_zag_encode(-4200), 8399);
-    }
-
-    #[test]
     fn test_uint8_pre_encode() {
         let mut state = State::new();
 

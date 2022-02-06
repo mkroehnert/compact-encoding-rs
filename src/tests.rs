@@ -5,7 +5,10 @@
 mod npm_adapted;
 
 #[cfg(test)]
-mod unsigned;
+mod basic;
 
 #[cfg(test)]
 mod float;
+
+#[cfg(test)]
+mod unsigned;
