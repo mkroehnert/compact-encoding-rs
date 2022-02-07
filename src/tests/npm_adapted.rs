@@ -560,8 +560,8 @@ mod tests {
                 start: 5,
                 end: 20,
                 buffer: Some(
-                    "\x04🌾\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".
-                        as_bytes()
+                    "\x04🌾\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+                        .as_bytes()
                         .to_vec()
                 ),
             }
