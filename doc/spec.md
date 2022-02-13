@@ -35,9 +35,9 @@ least significant bit (LSB) for little endian = byte0
 |                 |                                                                  |             |        |
 | string          | string size encoded as header, utf8 copied as byte buffer        | [X]         | [ ]    |
 |                 |                                                                  |             |        |
-| fixed32         |                                                                  | [ ]         | [ ]    |
-| fixed64         |                                                                  | [ ]         | [ ]    |
-|                 |                                                                  |             |        |
+| fixed           | buffer of size N is copied directly for encodign                 | [?]         | [ ]    |
+| fixed32         | see Fixed<32>                                                    | [?]         | [ ]    |
+| fixed64         | see Fixed<64>                                                    | [?]         | [ ]    |
 
 ## zigzag en/de-coding
 
@@ -47,6 +47,7 @@ least significant bit (LSB) for little endian = byte0
 * String: first implementation encodes &str and decodes to String (due to new buffer allocation) 
 * Array: encoding for [T; N] and Vec<T>, decoding currently only into Vec<T>
 * uint32 buffer/array requires separate struct U32Array, since Vec<T> already exists. Should it be possible to serialize Vec<u32> differently then a uint32 buffer/array? If not, rust unstable feature of `default` trait implementation would be required.
+* fixed32/64 is currently only implemented for [u8; N] and other types must be transformed into u8 arrays.
 
 # compact-encoding-struct
 

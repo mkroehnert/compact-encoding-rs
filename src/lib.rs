@@ -660,7 +660,7 @@ where
     /// allocate the required size in State for current type
     fn pre_encode(&self, state: &mut State) {
         N.pre_encode(state);
-        // TODO check for MAX_ARRAY_DECODE_SIZE
+        // TODO check for MAX_ARRAY_DECODE_SIZE -> not implemented in JS
         for element in self.iter() {
             element.pre_encode(state);
         }
@@ -670,7 +670,7 @@ where
     /// requires state.buffer to be allocated first
     fn encode(&self, state: &mut State) -> EncodeResult {
         N.encode(state)?;
-        // TODO check for MAX_ARRAY_DECODE_SIZE
+        // TODO check for MAX_ARRAY_DECODE_SIZE -> not implemented in JS
         for element in self.iter() {
             element.encode(state)?;
         }
@@ -801,3 +801,33 @@ impl Decode for U32Array<'_> {
     }
 }
 
+/// compact encoding for fixed size buffers
+#[derive(Debug, PartialEq, PartialOrd)]
+pub struct Fixed<const N: usize>([u8; N]);
+
+pub type Fixed32 = Fixed<32>;
+pub type Fixed64 = Fixed<64>;
+
+/// compact encoding for Fixed<N>
+impl<const N: usize> Encode for Fixed<N> {
+    /// allocate the required size in State for current type
+    fn pre_encode(&self, state: &mut State) {
+        state.end += N;
+    }
+
+    /// encode n into state.buffer
+    /// requires state.buffer to be allocated first
+    fn encode(&self, state: &mut State) -> EncodeResult {
+        state.write(&self.0[..])
+    }
+}
+
+/// compact decoding for Fixed<N>
+impl<const N: usize> Decode for Fixed<N> {
+    fn decode(state: &mut State) -> DecodeResultT<Self> {
+        let buffer_ref = state.read_next(N)?;
+        let mut fixed = Self([0; N]);
+        fixed.0.copy_from_slice(buffer_ref);
+        Ok(fixed)
+    }
+}

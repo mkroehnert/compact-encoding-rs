@@ -666,87 +666,194 @@ mod tests {
     fn test_fixed32() {
         let mut state = State::new();
 
-        /*
-          const state = enc.state()
+        let buffer_a = ['a' as u8; 32];
+        let buffer_b = ['b' as u8; 32];
 
-          enc.fixed32.preencode(state, Buffer.alloc(32).fill('a'))
-          t.alike(state, { start: 0, end: 32, buffer: null })
-          enc.fixed32.preencode(state, Buffer.alloc(32).fill('b'))
-          t.alike(state, { start: 0, end: 64, buffer: null })
+        Fixed(buffer_a.clone()).pre_encode(&mut state);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 32,
+                buffer: None,
+            }
+        );
 
-          state.buffer = Buffer.alloc(state.end)
-          enc.fixed32.encode(state, Buffer.alloc(32).fill('a'))
-          t.alike(state, { start: 32, end: 64, buffer: Buffer.alloc(64).fill('a', 0, 32) })
-          enc.fixed32.encode(state, Buffer.alloc(32).fill('b'))
-          t.alike(state, { start: 64, end: 64, buffer: Buffer.alloc(64).fill('a', 0, 32).fill('b', 32, 64) })
+        Fixed(buffer_b.clone()).pre_encode(&mut state);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 64,
+                buffer: None,
+            }
+        );
 
-          state.start = 0
-          t.alike(enc.fixed32.decode(state), Buffer.alloc(32).fill('a'))
-          t.alike(enc.fixed32.decode(state), Buffer.alloc(32).fill('b'))
-          t.is(state.start, state.end)
+        state.alloc();
+        assert_eq!(Fixed(buffer_a.clone()).encode(&mut state), Ok(()));
+        let mut test_buffer_a = [0 as u8; 64];
+        test_buffer_a[..32].copy_from_slice(&buffer_a);
+        assert_eq!(
+            state,
+            State {
+                start: 32,
+                end: 64,
+                buffer: Some(test_buffer_a.to_vec()),
+            }
+        );
 
-          t.exception(() => enc.fixed32.decode(state))
-        })
-        */
+        assert_eq!(Fixed(buffer_b.clone()).encode(&mut state), Ok(()));
+        let mut test_buffer_b = [0 as u8; 64];
+        test_buffer_b[..32].copy_from_slice(&buffer_a);
+        test_buffer_b[32..].copy_from_slice(&buffer_b);
+        assert_eq!(
+            state,
+            State {
+                start: 64,
+                end: 64,
+                buffer: Some(test_buffer_b.to_vec()),
+            }
+        );
+
+        state.start = 0;
+        assert_eq!(Fixed::decode(&mut state), Ok(Fixed(buffer_a)));
+        assert_eq!(Fixed::decode(&mut state), Ok(Fixed(buffer_b)));
+        assert_eq!(state.start, state.end);
+        assert_eq!(
+            Fixed::<32>::decode(&mut state),
+            Err(DecodeError::BufferTooSmall)
+        );
     }
 
     #[test]
     fn test_fixed64() {
         let mut state = State::new();
 
-        /*
-          const state = enc.state()
+        let buffer_a = ['a' as u8; 64];
+        let buffer_b = ['b' as u8; 64];
 
-          enc.fixed64.preencode(state, Buffer.alloc(64).fill('a'))
-          t.alike(state, { start: 0, end: 64, buffer: null })
-          enc.fixed64.preencode(state, Buffer.alloc(64).fill('b'))
-          t.alike(state, { start: 0, end: 128, buffer: null })
+        Fixed(buffer_a.clone()).pre_encode(&mut state);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 64,
+                buffer: None,
+            }
+        );
 
-          state.buffer = Buffer.alloc(state.end)
-          enc.fixed64.encode(state, Buffer.alloc(64).fill('a'))
-          t.alike(state, { start: 64, end: 128, buffer: Buffer.alloc(128).fill('a', 0, 64) })
-          enc.fixed64.encode(state, Buffer.alloc(64).fill('b'))
-          t.alike(state, { start: 128, end: 128, buffer: Buffer.alloc(128).fill('a', 0, 64).fill('b', 64, 128) })
+        Fixed(buffer_b.clone()).pre_encode(&mut state);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 128,
+                buffer: None,
+            }
+        );
 
-          state.start = 0
-          t.alike(enc.fixed64.decode(state), Buffer.alloc(64).fill('a'))
-          t.alike(enc.fixed64.decode(state), Buffer.alloc(64).fill('b'))
-          t.is(state.start, state.end)
+        state.alloc();
+        assert_eq!(Fixed(buffer_a.clone()).encode(&mut state), Ok(()));
+        let mut test_buffer_a = [0 as u8; 128];
+        test_buffer_a[..64].copy_from_slice(&buffer_a);
+        assert_eq!(
+            state,
+            State {
+                start: 64,
+                end: 128,
+                buffer: Some(test_buffer_a.to_vec()),
+            }
+        );
 
-          t.exception(() => enc.fixed64.decode(state))
-        })
-        */
+        assert_eq!(Fixed(buffer_b.clone()).encode(&mut state), Ok(()));
+        let mut test_buffer_b = [0 as u8; 128];
+        test_buffer_b[..64].copy_from_slice(&buffer_a);
+        test_buffer_b[64..].copy_from_slice(&buffer_b);
+        assert_eq!(
+            state,
+            State {
+                start: 128,
+                end: 128,
+                buffer: Some(test_buffer_b.to_vec()),
+            }
+        );
+
+        state.start = 0;
+        assert_eq!(Fixed::decode(&mut state), Ok(Fixed(buffer_a)));
+        assert_eq!(Fixed::decode(&mut state), Ok(Fixed(buffer_b)));
+        assert_eq!(state.start, state.end);
+        assert_eq!(
+            Fixed::<64>::decode(&mut state),
+            Err(DecodeError::BufferTooSmall)
+        );
     }
 
     #[test]
     fn test_fixed() {
         let mut state = State::new();
 
-        // TODO: this test may not make much sense
-        /*
-          const state = enc.state()
-          const fixed = enc.fixed(3)
+        let buffer_a = ['a' as u8; 3];
+        let buffer_b = ['b' as u8; 3];
 
-          fixed.preencode(state, Buffer.alloc(3).fill('a'))
-          t.alike(state, { start: 0, end: 3, buffer: null })
-          fixed.preencode(state, Buffer.alloc(3).fill('b'))
-          t.alike(state, { start: 0, end: 6, buffer: null })
+        Fixed(buffer_a.clone()).pre_encode(&mut state);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 3,
+                buffer: None,
+            }
+        );
 
-          state.buffer = Buffer.alloc(state.end)
-          fixed.encode(state, Buffer.alloc(3).fill('a'))
-          t.alike(state, { start: 3, end: 6, buffer: Buffer.alloc(6).fill('a', 0, 3) })
-          fixed.encode(state, Buffer.alloc(3).fill('b'))
-          t.alike(state, { start: 6, end: 6, buffer: Buffer.alloc(6).fill('a', 0, 3).fill('b', 3, 6) })
+        Fixed(buffer_b.clone()).pre_encode(&mut state);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 6,
+                buffer: None,
+            }
+        );
 
-          state.start = 0
-          t.alike(fixed.decode(state), Buffer.alloc(3).fill('a'))
-          t.alike(fixed.decode(state), Buffer.alloc(3).fill('b'))
-          t.is(state.start, state.end)
+        state.alloc();
+        assert_eq!(Fixed(buffer_a.clone()).encode(&mut state), Ok(()));
+        let mut test_buffer_a = [0 as u8; 6];
+        test_buffer_a[..3].copy_from_slice(&buffer_a);
+        assert_eq!(
+            state,
+            State {
+                start: 3,
+                end: 6,
+                buffer: Some(test_buffer_a.to_vec()),
+            }
+        );
 
-          t.exception(() => fixed.decode(state))
-          state.start = 4
-          t.exception(() => fixed.decode(state))
-        })
-        */
+        assert_eq!(Fixed(buffer_b.clone()).encode(&mut state), Ok(()));
+        let mut test_buffer_b = [0 as u8; 6];
+        test_buffer_b[..3].copy_from_slice(&buffer_a);
+        test_buffer_b[3..].copy_from_slice(&buffer_b);
+        assert_eq!(
+            state,
+            State {
+                start: 6,
+                end: 6,
+                buffer: Some(test_buffer_b.to_vec()),
+            }
+        );
+
+        state.start = 0;
+        assert_eq!(Fixed::decode(&mut state), Ok(Fixed(buffer_a)));
+        assert_eq!(Fixed::decode(&mut state), Ok(Fixed(buffer_b)));
+        assert_eq!(state.start, state.end);
+        assert_eq!(
+            Fixed::<3>::decode(&mut state),
+            Err(DecodeError::BufferTooSmall)
+        );
+        state.start = 4;
+
+        assert_eq!(
+            Fixed::<3>::decode(&mut state),
+            Err(DecodeError::BufferTooSmall)
+        );
     }
 }
