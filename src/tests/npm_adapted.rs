@@ -430,28 +430,71 @@ mod tests {
     fn test_uint32array() {
         let mut state = State::new();
 
-        /*
-          const state = enc.state()
+        let array1 = vec![1u32];
+        let array2 = vec![42u32, 43u32];
+        U32Array::VecRef(&array1).pre_encode(&mut state);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 5,
+                buffer: None,
+            }
+        );
 
-          enc.uint32array.preencode(state, new Uint32Array([1]))
-          t.alike(state, { start: 0, end: 5, buffer: null })
-          enc.uint32array.preencode(state, new Uint32Array([42, 43]))
-          t.alike(state, { start: 0, end: 14, buffer: null })
+        U32Array::Slice(array2.as_slice()).pre_encode(&mut state);
+        assert_eq!(
+            state,
+            State {
+                start: 0,
+                end: 14,
+                buffer: None,
+            }
+        );
 
-          state.buffer = Buffer.alloc(state.end)
-          enc.uint32array.encode(state, new Uint32Array([1]))
-          t.alike(state, { start: 5, end: 14, buffer: Buffer.from([1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]) })
-          enc.uint32array.encode(state, new Uint32Array([42, 43]))
-          t.alike(state, { start: 14, end: 14, buffer: Buffer.from([1, 1, 0, 0, 0, 2, 42, 0, 0, 0, 43, 0, 0, 0]) })
+        state.alloc();
 
-          state.start = 0
-          t.alike(enc.uint32array.decode(state), new Uint32Array([1]))
-          t.alike(enc.uint32array.decode(state), new Uint32Array([42, 43]))
-          t.is(state.start, state.end)
+        assert_eq!(U32Array::VecRef(&array1).encode(&mut state), Ok(()));
+        assert_eq!(
+            state,
+            State {
+                start: 5,
+                end: 14,
+                buffer: Some(vec![
+                    1, 1, 0, 0, 0, // [1]
+                    0, 0, 0, 0, 0, 0, 0, 0, 0 // [42, 43]
+                ]),
+            }
+        );
 
-          t.exception(() => enc.uint32array.decode(state))
-        })
-        */
+        assert_eq!(
+            U32Array::Slice(array2.as_slice()).encode(&mut state),
+            Ok(())
+        );
+        assert_eq!(
+            state,
+            State {
+                start: 14,
+                end: 14,
+                buffer: Some(vec![
+                    1, 1, 0, 0, 0, // [1]
+                    2, 42, 0, 0, 0, 43, 0, 0, 0 // [42, 43]
+                ]),
+            }
+        );
+
+        state.start = 0;
+        assert_eq!(U32Array::decode(&mut state), Ok(U32Array::Vec(vec![1])));
+        assert_eq!(
+            U32Array::decode(&mut state),
+            Ok(U32Array::Vec(vec![42, 43]))
+        );
+
+        assert_eq!(state.start, state.end);
+        assert_eq!(
+            Vec::<u32>::decode(&mut state),
+            Err(DecodeError::BufferTooSmall)
+        );
     }
 
     #[test]

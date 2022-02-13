@@ -726,37 +726,78 @@ where
     }
 }
 
-/*
-/// compact encoding for &[u32]
-impl Encode for &[u32] {
+#[derive(Debug, PartialEq)]
+pub enum U32Array<'a> {
+    Vec(Vec<u32>),
+    VecRef(&'a Vec<u32>),
+    Slice(&'a [u32]),
+}
+
+/// compact encoding for U32Array
+/// MDN: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint32Array
+impl Encode for U32Array<'_> {
     /// allocate the required size in State for current type
     fn pre_encode(&self, state: &mut State) {
-        self.len().pre_encode(state);
-        state.end += self.len();
+        let vec = match self {
+            U32Array::Vec(vec) => vec.as_slice(),
+            U32Array::VecRef(vec) => vec.as_slice(),
+            U32Array::Slice(slice) => slice,
+        };
+        vec.len().pre_encode(state);
+        // u32 has 4 bytes length
+        state.end += vec.len() * 4;
     }
 
     /// encode n into state.buffer
     /// requires state.buffer to be allocated first
     fn encode(&self, state: &mut State) -> EncodeResult {
-        self.len().encode(state)?;
-        state.write(self)
+        let vec = match self {
+            U32Array::Vec(vec) => vec.as_slice(),
+            U32Array::VecRef(vec) => vec.as_slice(),
+            U32Array::Slice(slice) => slice,
+        };
+        vec.len().encode(state)?;
+        for num in vec {
+            state.write(&num.to_le_bytes())?;
+        }
+        Ok(())
     }
 }
 
-/// compact decoding for Vec<u32>
-impl Decode for Vec<u32> {
+/// compact decoding for U32Array
+/// returns U32Array::Vec(_)
+impl Decode for U32Array<'_> {
     fn decode(state: &mut State) -> DecodeResultT<Self> {
         let buffer_size = usize::decode(state)?;
         if buffer_size == 0 {
-            return Ok(None);
+            return Ok(U32Array::Vec(vec![]));
         };
-        let buffer_ref = state.read_next(buffer_size)?;
+        /* JS Implementation contains this part as well
+         * TODO: clarify functionality with original author
+            // const byteOffset = state.buffer.byteOffset + state.start
+            // const s = state.start
 
-        if buffer_ref.len() == buffer_size {
-            Ok(Some(Box::new(Vec::from(buffer_ref))))
-        } else {
-            Err(DecodeError::TypeMismatch)
+            // state.start += len * 4
+
+            // if ((byteOffset & 3) === 0) {
+            //   const arr = new Uint32Array(state.buffer.buffer, byteOffset, len)
+            //   if (BE) LEToHost32(arr, len)
+            //   return arr
+            // }
+        */
+        // align mismatch
+        let mut vec: Vec<u32> = Vec::with_capacity(buffer_size);
+        // read all u32 values and decode them from little endian
+        // difference to JS implementation: decode each value instead of reading buffer and then decoding buffer
+        for _ in 1..(buffer_size + 1) {
+            let buffer_ref = state.read_next(4)?;
+            vec.push(u32::from_le_bytes(
+                buffer_ref
+                    .try_into()
+                    .map_err(|_| DecodeError::TypeMismatch)?,
+            ));
         }
+        Ok(U32Array::Vec(vec))
     }
 }
-*/
+
